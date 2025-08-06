@@ -1,13 +1,163 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/tab.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Levi</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+---
+layout: default
+title: Levi Rankin - Personal Portfolio
+---
+
+<div class="min-h-screen relative">
+  <!-- Background image with overlay -->
+  <div 
+    class="fixed inset-0 bg-cover bg-center z-0"
+    style="background-image: url('{{ '/assets/images/background.png' | relative_url }}')">
+  </div>
+  <div class="fixed inset-0 bg-black/80 z-10"></div>
+
+  <!-- Main content wrapper -->
+  <div class="relative z-20 min-h-screen text-white">
+    <!-- Header Section -->
+    <div class="w-full px-4 py-12 text-center">
+      <div class="max-w-4xl mx-auto space-y-8">
+        
+        <!-- Name and Social Links -->
+        <div class="space-y-6">
+          <h1 class="text-4xl font-serif text-white">Levi Rankin</h1>
+          
+          <!-- Social Links -->
+          <div class="flex justify-center space-x-8">
+            <a href="https://github.com/Urenzu" class="hover:text-gray-300 transition-colors p-2 flex items-center gap-2">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+              </svg>
+              <span class="text-sm">GitHub</span>
+            </a>
+            
+            <a 
+              href="{{ '/assets/images/resume.pdf' | relative_url }}" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              class="hover:text-gray-300 transition-colors p-2 flex items-center gap-2"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <span class="text-sm">Resume</span>
+            </a>
+            
+            <a href="https://www.linkedin.com/in/levirankin/" class="hover:text-gray-300 transition-colors p-2 flex items-center gap-2">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+              <span class="text-sm">LinkedIn</span>
+            </a>
+            
+            <a href="{{ '/posts.html' | relative_url }}" class="hover:text-gray-300 transition-colors p-2 flex items-center gap-2">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+              </svg>
+              <span class="text-sm">Posts</span>
+            </a>
+            
+            <a href="{{ '/resources.html' | relative_url }}" class="hover:text-gray-300 transition-colors p-2 flex items-center gap-2">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+              </svg>
+              <span class="text-sm">Resources</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Intent and Interests -->
+        <div class="space-y-6">
+          <!-- Intent Card -->
+          <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm">
+            <h2 class="text-xl font-serif mb-4">Intent</h2>
+            <div class="text-gray-200 text-base">
+              <p>
+                My previous experiences span diverse domains, including deep learning, data science, blockchain, and many other areas; 
+                however, I'm currently open to a broad range of software engineering roles as long as I'm given the opportunity to learn a lot.
+              </p>
+            </div>
+          </div>
+          
+          <!-- Interests Card -->
+          <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm">
+            <h2 class="text-xl font-serif mb-4">Current Interests / Focus</h2>
+            <div class="text-gray-200 text-base flex flex-wrap gap-3 justify-center">
+              <span class="bg-white/10 px-3 py-1 rounded-full">Systems Languages</span>
+              <span class="bg-white/10 px-3 py-1 rounded-full">Distributed Systems</span>
+              <span class="bg-white/10 px-3 py-1 rounded-full">Databases</span>
+              <span class="bg-white/10 px-3 py-1 rounded-full">ML</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Sections -->
+    <div class="max-w-4xl mx-auto px-4 space-y-12 pb-16">
+
+      <!-- Work Experience Section -->
+      <div class="bg-black/40 p-6 rounded-xl backdrop-blur-sm text-center">
+        <h2 class="text-lg uppercase tracking-widest font-light mb-8 border-b border-white/10 pb-2">WORK EXPERIENCE</h2>
+        <div class="space-y-6">
+          <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm">
+            <h3 class="text-xl font-serif mb-2">Software Engineer</h3>
+            <p class="text-gray-300 text-sm mb-4">UXLY Software · Internship · Sep 2024 - Dec 2024 · San Francisco, CA</p>
+            <p class="text-gray-200">Building blockchain analytics software for chain integrity and analysis.</p>
+          </div>
+
+          <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm">
+            <h3 class="text-xl font-serif mb-2">Tech Lead / Founder</h3>
+            <p class="text-gray-300 text-sm mb-4">Synthura · Self-employed · Mar 2024 - Jun 2024 · Santa Cruz, CA</p>
+            <p class="text-gray-200">A computer vision-focused security platform.</p>
+          </div>
+
+          <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm">
+            <h3 class="text-xl font-serif mb-2">Undergraduate Researcher</h3>
+            <p class="text-gray-300 text-sm mb-4">Baskin Engineering at UCSC · Jan 2024 - Jun 2024 · Santa Cruz, CA</p>
+            <p class="text-gray-200">Research on Computer Vision with Detection Transformers.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Projects Section -->
+      <div class="bg-black/40 p-6 rounded-xl backdrop-blur-sm text-center">
+        <h2 class="text-lg uppercase tracking-widest font-light mb-8 border-b border-white/10 pb-2">RECENT PROJECTS</h2>
+        <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm">
+          <div class="text-gray-200 text-base leading-relaxed">
+            ...
+          </div>
+        </div>
+      </div>
+
+      <!-- Past Projects Section -->
+      <div class="bg-black/40 p-6 rounded-xl backdrop-blur-sm text-center">
+        <h2 class="text-lg uppercase tracking-widest font-light mb-8 border-b border-white/10 pb-2">PAST PROJECTS</h2>
+        <div class="bg-white/10 p-6 rounded-xl backdrop-blur-sm">
+          <div class="text-gray-200 text-base space-y-2">
+            <p>Human Segmentation and Portrait Enhancement</p>
+            <p>Autonomous Driving Steering Control</p>
+            <p>Multiclassification Image Classifier</p>
+            <p>Real-time Face Detection and Tracking System</p>
+            <p>Covid Data Analysis</p>
+            <p>Movie Industry Analysis</p>
+            <p>Sales Data Analysis</p>
+            <p>Rollercoaster Data Analysis</p>
+            <p>Singapore Property Analysis</p>
+            <p>Housing Data Cleaning</p>
+            <p>Energy Forecasting with XGBoost</p>
+            <p>Crypto Data Extraction</p>
+            <p>Securities Analysis Tool</p>
+            <p>Statistical Arbitrage Pair Trading Strategy</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Education Section -->
+      <div class="bg-black/40 p-6 rounded-xl backdrop-blur-sm text-center">
+        <h2 class="text-lg uppercase tracking-widest font-light mb-8 border-b border-white/10 pb-2">EDUCATION</h2>
+        <h3 class="text-xl font-serif mb-6">B.S. Computer Science</h3>
+      </div>
+
+    </div>
+  </div>
+</div>

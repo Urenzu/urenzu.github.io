@@ -1,0 +1,39 @@
+# Site settings
+title: Levi Rankin
+description: Personal portfolio and resume
+baseurl: ""
+url: "https://urenzu.github.io"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Exclude files
+exclude:
+  - node_modules
+  - package.json
+  - package-lock.json
+  - webpack.config.js
+  - gulpfile.js
+  - README.md
+  - src/
+  - dist/
+  - vite.config.js
+  - tailwind.config.js
+  - postcss.config.js
+  - eslint.config.js
+
+# Collections
+collections:
+  includes:
+    output: false
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"

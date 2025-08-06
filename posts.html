@@ -1,0 +1,55 @@
+---
+layout: default
+title: Posts - Levi Rankin
+---
+
+<div class="min-h-screen relative">
+  <!-- Background image with overlay -->
+  <div 
+    class="fixed inset-0 bg-cover bg-center z-0"
+    style="background-image: url('{{ '/assets/images/background.png' | relative_url }}')">
+  </div>
+  <div class="fixed inset-0 bg-black/80 z-10"></div>
+
+  <!-- Main content wrapper -->
+  <div class="relative z-20 min-h-screen text-white">
+    <!-- Header -->
+    <div class="w-full px-4 py-8 text-center">
+      <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-serif text-white mb-4">Posts</h1>
+        <p class="text-gray-300 text-lg mb-8">Technical essays and project deep dives</p>
+        
+        <!-- Back to Home -->
+        <a href="{{ '/' | relative_url }}" class="inline-flex items-center gap-2 text-gray-300 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Back to Home
+        </a>
+      </div>
+    </div>
+
+    <!-- Posts Content -->
+    <div class="max-w-4xl mx-auto px-4 space-y-8 pb-16">
+      
+      <!-- Post Template - Copy this structure for new posts -->
+      <article class="bg-black/40 p-8 rounded-xl backdrop-blur-sm">
+        <div class="mb-6">
+          <h2 class="text-2xl font-serif mb-2">Your Post Title Here</h2>
+          <p class="text-gray-400 text-sm">January 15, 2025</p>
+        </div>
+        <div class="text-gray-200 space-y-4 leading-relaxed">
+          <p>
+            Start writing your technical essay or project deep dive here. 
+            This space can expand as much as you need for long-form content.
+          </p>
+          <p>
+            Add more paragraphs, code examples, technical details, or any other content.
+            The page will scroll infinitely as you add more posts above this template.
+          </p>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</div>
