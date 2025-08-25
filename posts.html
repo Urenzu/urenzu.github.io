@@ -32,23 +32,240 @@ title: Posts - Levi Rankin
     <!-- Posts Content -->
     <div class="max-w-4xl mx-auto px-4 space-y-8 pb-16">
       
-      <!-- Post Template - Copy this structure for new posts -->
+      <!-- Python's Interpreter, Objects, and the GIL -->
       <article class="bg-black/40 p-8 rounded-xl backdrop-blur-sm">
         <div class="mb-6">
-          <h2 class="text-2xl font-serif mb-2">Your Post Title Here</h2>
-          <p class="text-gray-400 text-sm">January 15, 2025</p>
+          <h2 class="text-2xl font-serif mb-2">Python's interpreter, objects, and the GIL</h2>
+          <p class="text-gray-400 text-sm">August 25, 2025</p>
         </div>
         <div class="text-gray-200 space-y-4 leading-relaxed">
+          <p class="italic text-gray-300">
+            Disclaimer: this is not an academic paper, source code, compilers textbook, nor an attempt to be perfectly accurate. However I do try a marginal amount.
+          </p>
+          
           <p>
-            Start writing your technical essay or project deep dive here. 
-            This space can expand as much as you need for long-form content.
+            This will be a brief dive into some Python details you should probably know and perhaps currently don't.
+          </p>
+          
+          <p>
+            First of all, you must know there isn't just one python. There are many. Python is a language defined by a specification and syntactic rules, and there are many implementations which realize this specification. For example: CPython, PyPy, Jython, MicroPython, etc.) Most commonly when we refer to python we're referring to CPython, a version of Python implemented in C. Knowing the Python implementation is important for reasons such as compatibility, syntax, standard library differences, optimization, and more.
+          </p>
+          
+          <p>
+            Now that we know our Python implementation. Lets dive into the word we probably know about regarding Python… this word being <em>interpreted.</em> Python is an interpreted language; this means many things such as source code is executed by an interpreter program, we don't produce a machine code binary (Like C through llvm), our code is highly portable, and much more. However I'd like to zone in on what exactly we're interpreting and what is the lowest level of this interpretation.
+          </p>
+          
+          <p>
+            Well remember our implementation of Python? CPython to be exact in this context. When we type a command such as 'python3 script.py', what we're doing is launching the CPython interpreter binary. That binary contains the compiler which allows us to move source code to bytecode, the virtual machine (VM), as well as the runtime which works our memory management, objects, garbage collector, etc.
+          </p>
+          
+          <p>
+            In essence this <em>interpreter</em> isn't this magical thing which completely separates it from compiled code, I would argue it's still compiled code just a different method or implementation at least in CPython. In this particular case CPython combines both compilation to bytecode and interpretation.
+          </p>
+          
+          <p class="italic text-gray-300">
+            Note depending on when you read this perhaps the cycle is different
+          </p>
+          
+          <p>
+            Within your Python installation and after we run 'python3 script.py' first tokenizer.c is called where given our python code it's parsed into tokens (via a lexer). For example a variable 'x' transitions into the token 'NAME', or an int like 42 transitions into 'NUMBER' (You can look at the collection of tokens elsewhere).
+          </p>
+          
+          <div class="bg-black p-4 rounded-lg">
+            <p class="text-gray-400 text-sm mb-2">Pre-tokenization</p>
+            <pre class="text-pink-400"><code>x = 1 + 2</code></pre>
+          </div>
+          
+          <div class="bg-black p-4 rounded-lg">
+            <p class="text-gray-400 text-sm mb-2">Post-tokenization</p>
+            <pre class="text-pink-400"><code>NAME('x')
+EQUAL('=')
+NUMBER('1')
+PLUS('+')
+NUMBER('2')
+NEWLINE
+ENDMARKER</code></pre>
+          </div>
+          
+          <p>
+            Now that we have our tokens, parser.c is ran from the grammar file python.gram this process is referred to as the PEG parser or pegen, this is short for parsing expression grammar. The parser will consume tokens one by one applying grammar rules defined in python.gram. All of which leads to the structure of a Concrete syntax tree (CST). Grammar rules are for matching tokens to patterns implicit within programming languages. Additionally, we make a CST because we want a full tree mapping which mirrors our grammar and patterns, as well as the tokens involved. The CST is the literal expansion of the tokens which got matched to the defined grammar rules. (CPython ≥ 3.9)
+          </p>
+          
+          <div class="bg-black p-4 rounded-lg">
+            <p class="text-gray-400 text-sm mb-2">Grammar</p>
+            <pre class="text-pink-400"><code>assignment: NAME '=' expr
+
+expr: expr '+' term
+    | term
+
+term: NUMBER | NAME</code></pre>
+          </div>
+          
+          <div class="bg-black p-4 rounded-lg">
+            <p class="text-gray-400 text-sm mb-2">CST</p>
+            <pre class="text-pink-400"><code>assignment
+├── NAME('x')
+├── '='
+└── expr
+    ├── expr
+    │   └── term
+    │       └── NUMBER('1')
+    ├── '+'
+    └── term
+        └── NUMBER('2')</code></pre>
+          </div>
+          
+          <p>
+            Once the CST is built it's handed off to ast.c which transforms the CST into Abstract syntax tree (AST) nodes. This is where details such as scope and operator precedence get baked in. The AST strips down the CST to extract its semantic representations keeping the essential meaning.
+          </p>
+          
+          <div class="bg-black p-4 rounded-lg">
+            <p class="text-gray-400 text-sm mb-2">AST</p>
+            <pre class="text-pink-400"><code>Assign(
+  targets=[
+    Name(id='x', ctx=Store())
+  ],
+  value=BinOp(
+    left=Constant(value=1),
+    op=Add(),
+    right=Constant(value=2)
+  )
+)</code></pre>
+          </div>
+          
+          <p>
+            Now we have our AST where we captured tree-structured meaning of the program. We need to transition into something better for execution. The tree structure of the AST is hierarchical and each node nests inside of another. However, execution is not strictly tree-structured. For example: Conditionals where we have branched execution, loops which create cycles, break / continue with their respective jumps, returns, etc.
+          </p>
+          
+          <p>
+            Thus we need to transition our AST into a control flow graph (CFG). This is a graph of basic blocks in which every basic block is a straight line sequence of instructions with one entry and one exit and every graph edge represents a control flow jump. So given the AST encodes syntax and semantics now that we have that, the CFG will encode execution order possibilities for us.
+          </p>
+          
+          <p>
+            To get the CFG compile.c is ran and we walk the AST. For every statement / expression we emit instructions into the current block. If the control flow can jump (it hits a if, while, try, return, etc.) we close the current block and create a new one attached via an edge. When a whole function or module is compiled the CFG is linearized, this means that our chaotic graph with many expanding blocks and edges gets compressed down into a sequential ordering.
+          </p>
+          
+          <div class="bg-black p-4 rounded-lg">
+            <p class="text-gray-400 text-sm mb-2">CFG before linearization</p>
+            <pre class="text-pink-400"><code>Block0:
+  LOAD_CONST 1
+  LOAD_CONST 2
+  BINARY_OP Add
+  STORE_NAME x
+  JUMP_FORWARD -> BlockExit
+
+BlockExit:
+  RETURN_VALUE</code></pre>
+          </div>
+          
+          <div class="bg-black p-4 rounded-lg">
+            <p class="text-gray-400 text-sm mb-2">CFG after linearization (CPython 3.11+ uses a adaptive interpreter where bytecode can be rewritten at runtime for faster execution)</p>
+            <pre class="text-pink-400"><code>0  LOAD_CONST 1
+2  LOAD_CONST 2
+4  BINARY_OP Add
+8  STORE_NAME x
+10 LOAD_CONST None
+12 RETURN_VALUE</code></pre>
+          </div>
+          
+          <p>
+            The numbers to the left (0, 2, 4, 8, 10, 12) are bytecode offsets. Meaning indexes into where the instruction starts and each instruction advances the program counter by 2 bytes. Per CPython 3.6 and onwards we have 1 byte for the opcode and another for the argument. Given the wordcode format we will always at minimum have 2 bytes. If we had no argument / oparg well then we would slot in a 0 as a placeholder. Additionally the only circumstance we would go beyond 2 bytes is with the EXTENDED-ARG used for larger arguments. Congratulations this is our bytecode you're looking at and the lowest the interpreted language will go.
+          </p>
+          
+          <p>
+            Now that we have our linearized CFG otherwise known as our bytecode we finally call ceval.c. CPython will have a current frame which holds 4 things:
+          </p>
+          
+          <ul class="list-disc list-inside ml-4 space-y-2">
+            <li><strong>f_code:</strong> the PyCodeObject with our byte code</li>
+            <li><strong>f_lasti:</strong> The program counter (PC), which is initially 0</li>
+            <li><strong>f_stacktop:</strong> operand stack pointer (Earlier versions &lt;3.11 stored this)</li>
+            <li><strong>local namespace dictionaries</strong></li>
+          </ul>
+          
+          <p>
+            ceval.c ingests the bytecode, runs it, and constantly references or updates those values until execution ends. This is the <em>interpreter</em> after that long process ceval.c is interpreting our bytecode and running the program.
+          </p>
+          
+          <p class="font-semibold">
+            Full sequence:
           </p>
           <p>
-            Add more paragraphs, code examples, technical details, or any other content.
-            The page will scroll infinitely as you add more posts above this template.
+            Source code → Tokenizer → Convert to CST → Convert to AST → Convert to CFG and linearize → Interpret Bytecode
+          </p>
+          
+          <p>
+            Earlier we mentioned <em>objects,</em> and directly above we mentioned the PyCodeObject. I'll use this reference to transition into another concept you should be aware of. That is, everything in Python is an Object our byte code ends up being an object, our variables are objects, and every function or class is an object as well.
+          </p>
+          
+          <p>
+            This is because within the source code everything really is represented via a C struct which contains the object header as well as any metadata we need to store.
+          </p>
+          
+          <div class="bg-black p-4 rounded-lg">
+            <pre class="text-pink-400"><code>// All Python objects *begin* with this header
+typedef struct _object {
+    Py_ssize_t ob_refcnt;        // reference count
+    struct _typeobject *ob_type; // pointer to type descriptor
+} PyObject;
+
+// They then extend into higher level objects like: PyLongObject or PyListObject
+#define PyObject_HEAD \
+    Py_ssize_t ob_refcnt; \
+    struct _typeobject *ob_type;
+
+// Example: integers
+typedef struct {
+    PyObject_HEAD
+    long ob_ival;
+} PyLongObject;</code></pre>
+          </div>
+          
+          <p>
+            Note that Python is <strong>dynamically typed</strong> because type information is not fixed at compile time, instead it's resolved at runtime through the <code class="bg-gray-700 px-1 rounded">ob_type</code> pointer. Variables don't have types, objects do. Each object's <code class="bg-gray-700 px-1 rounded">ob_type</code> points to a <code class="bg-gray-700 px-1 rounded">PyTypeObject</code> that defines the type's name, size, and other metadata.
+          </p>
+          
+          <p>
+            That's why Python bytecode stays generic: the same <code class="bg-gray-700 px-1 rounded">BINARY_OP Add</code> handles <code class="bg-gray-700 px-1 rounded">1+2</code>, <code class="bg-gray-700 px-1 rounded">"a"+"b"</code>, or a user-defined class, with the interpreter dispatching the correct behavior based on each operand's <code class="bg-gray-700 px-1 rounded">ob_type</code>.
+          </p>
+          
+          <p>
+            Now back to our C struct, in reality we start here as our first struct destination, then we have a pointer to the actual object struct which holds all of its metadata which is needed, the reference count is used for our runtime.
+          </p>
+          
+          <p>
+            This particular detail is important and will come in handy in many scenarios. This everything is an object intuition means now you understand:
+          </p>
+          
+          <ul class="list-disc list-inside ml-4 space-y-2">
+            <li><strong>Ints are immutable</strong> → because <code class="bg-gray-700 px-1 rounded">PyLongObject</code> holds digit arrays that aren't exposed for modification, ensuring correctness of hashing and interning.</li>
+            <li><strong><code class="bg-gray-700 px-1 rounded">list.append</code> is amortized O(1)</strong> → because <code class="bg-gray-700 px-1 rounded">PyListObject</code> tracks both length and capacity in <code class="bg-gray-700 px-1 rounded">allocated</code>, avoiding reallocation on every append.</li>
+            <li><strong>Strings are interned/cached</strong> → because <code class="bg-gray-700 px-1 rounded">PyUnicodeObject</code> stores a cached hash and an intern flag in its metadata.</li>
+            <li><strong>Dict lookup is fast</strong> → because <code class="bg-gray-700 px-1 rounded">PyDictObject</code> keeps cached hashes, active entry counts, and a version tag for O(1) lookups and optimized iteration.</li>
+          </ul>
+          
+          <p>
+            Essentially just start thinking about python as a chain of objects / structs everywhere, and when you think about this reverse-engineering any feature or implementation becomes trivial.
+          </p>
+          
+          <p>
+            Now that we've seen how every object in CPython is really a C struct starting with a header, we can connect this idea to another concept you've most likely heard about: the Global Interpreter Lock (GIL).
+          </p>
+          
+          <p>
+            Remember our C struct from above? The 'ob_refcnt' field is what drives Python's memory management. Every assignment, function call, and data structure ends up incrementing or decrementing the reference counts and the interpreter relies on this counter being correct in order to know when we can free objects from memory. Our reference counts are just plain integers and within a multithreaded world this is dangerous. Two threads could attempt to update the same reference count at the same time and without protection we would get race conditions. In this context the race conditions could lead to premature freeing of memory, leaked objects, corrupt data structures, security exploits, and much more.
+          </p>
+          
+          <p>
+            Thus to correct this behavior we employ the GIL. The GIL ensures only one thread executes Python bytecode at a time, protecting reference counts and other interpreter invariants. Ultimately leading to no data races and all of our reference counts are correct. In otherwords, the GIL is a direct consequence of the object philosophy. Given everything is an object and every object relies on reference counts, then CPython protects those reference counts with a single lock.
+          </p>
+          
+          <p>
+            As of recently things are shifting. For example currently CPython provides the no-GIL build (no-GIL, —disable-gil), allowing true parallel execution of threads on multi-core cpus. However you have to explicitly enable it. We won't get into the details today however this is mostly accomplished with rethinking reference counting and object memory management via distinguishing between local thread references and shared references, atomic operations on reference counts, immortal objects, new memory allocators, adjusted garbage collection logic, etc. This could lead to a substantial language ecosystem shift.
           </p>
         </div>
       </article>
+
 
     </div>
   </div>
