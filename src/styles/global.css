@@ -46,6 +46,78 @@ a {
   pointer-events: none;
 }
 
+/* ─── Background style switcher ─────────────── */
+
+.bg-switcher {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 10;
+}
+
+.bg-switcher-btn {
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.1s ease, color 0.1s ease;
+}
+
+.bg-switcher-btn:hover,
+.bg-switcher-btn:focus-visible {
+  border-color: var(--fg);
+  color: var(--fg);
+  outline: none;
+}
+
+.bg-switcher-menu {
+  display: none;
+  list-style: none;
+  margin-top: 4px;
+  min-width: 11rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(4px);
+}
+
+.bg-switcher-menu.open {
+  display: block;
+}
+
+.bg-switcher-item {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  padding: 0.45rem 0.75rem;
+  color: var(--dim);
+  cursor: pointer;
+  transition: color 0.1s ease;
+}
+
+.bg-switcher-item::before {
+  content: ' ';
+  display: inline-block;
+  width: 0.8em;
+}
+
+.bg-switcher-item.active {
+  color: var(--fg);
+}
+
+.bg-switcher-item.active::before {
+  content: '›';
+}
+
+.bg-switcher-item:hover {
+  color: var(--fg);
+}
+
 /* ─── Homepage ───────────────────────────────── */
 
 .page-home {
