@@ -1,6 +1,8 @@
 import './styles/global.css';
 import { BackgroundEngine } from './lib/engine/index';
 import { TopoScene } from './lib/scenes/topo';
+import { WireframeScene } from './lib/scenes/wireframe';
+import { MechHudScene } from './lib/scenes/mechhud';
 import { initScramble } from './lib/scramble';
 
 const canvas = document.getElementById('topo-bg') as HTMLCanvasElement;
@@ -9,6 +11,8 @@ const engine = new BackgroundEngine(canvas);
 // Registry — add entries here to expose new background styles
 const STYLES = [
   { id: 'topographic', label: 'topographic', load: () => engine.load(new TopoScene()) },
+  { id: 'wireframe',   label: 'wireframe',   load: () => engine.load(new WireframeScene()) },
+  { id: 'mechhud',     label: 'mech hud',    load: () => engine.load(new MechHudScene()) },
 ];
 let activeStyle = STYLES[0].id;
 STYLES[0].load();
