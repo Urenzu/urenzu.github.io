@@ -19,6 +19,176 @@ const STATUS_CODES = [
 
 const GAUGE_LABELS = ['PWR', 'SYN', 'THR', 'ARM', 'COM'];
 
+// ── Mech wireframe vertex data (relative coords, center = 0,0, unit scale) ──
+// Each segment is [x1, y1, x2, y2] — will be scaled + translated to center
+const MECH_LINES: number[][] = [
+  // ── Head ──
+  [-0.06, -0.42, 0.06, -0.42],   // top
+  [-0.06, -0.42, -0.08, -0.36],  // left slope
+  [0.06, -0.42, 0.08, -0.36],    // right slope
+  [-0.08, -0.36, 0.08, -0.36],   // visor line
+  [-0.08, -0.36, -0.06, -0.32],  // chin left
+  [0.08, -0.36, 0.06, -0.32],    // chin right
+  [-0.06, -0.32, 0.06, -0.32],   // chin bottom
+  // visor detail
+  [-0.05, -0.38, 0.05, -0.38],
+  [-0.04, -0.40, 0.04, -0.40],
+
+  // ── Neck ──
+  [-0.03, -0.32, -0.03, -0.28],
+  [0.03, -0.32, 0.03, -0.28],
+
+  // ── Torso upper (chest) ──
+  [-0.03, -0.28, -0.18, -0.24],  // left shoulder connect
+  [0.03, -0.28, 0.18, -0.24],    // right shoulder connect
+  [-0.18, -0.24, -0.16, -0.06],  // left chest wall
+  [0.18, -0.24, 0.16, -0.06],    // right chest wall
+  [-0.16, -0.06, -0.12, 0.0],    // left waist taper
+  [0.16, -0.06, 0.12, 0.0],      // right waist taper
+  // chest plate detail
+  [-0.12, -0.22, 0.12, -0.22],
+  [-0.14, -0.18, 0.14, -0.18],
+  [-0.13, -0.14, 0.13, -0.14],
+  [-0.10, -0.22, -0.10, -0.10],  // vert detail left
+  [0.10, -0.22, 0.10, -0.10],    // vert detail right
+  // reactor core circle represented as octagon
+  [-0.04, -0.20, -0.06, -0.17],
+  [-0.06, -0.17, -0.04, -0.14],
+  [-0.04, -0.14, 0.04, -0.14],
+  [0.04, -0.14, 0.06, -0.17],
+  [0.06, -0.17, 0.04, -0.20],
+  [0.04, -0.20, -0.04, -0.20],
+
+  // ── Waist / hip ──
+  [-0.12, 0.0, 0.12, 0.0],       // belt line
+  [-0.12, 0.0, -0.14, 0.04],     // left hip
+  [0.12, 0.0, 0.14, 0.04],       // right hip
+  [-0.14, 0.04, -0.10, 0.06],    // left hip bottom
+  [0.14, 0.04, 0.10, 0.06],      // right hip bottom
+  [-0.10, 0.06, 0.10, 0.06],     // crotch line
+  // hip armor plates
+  [-0.14, 0.01, -0.18, 0.06],
+  [-0.18, 0.06, -0.14, 0.10],
+  [0.14, 0.01, 0.18, 0.06],
+  [0.18, 0.06, 0.14, 0.10],
+
+  // ── Left shoulder pauldron ──
+  [-0.18, -0.26, -0.28, -0.28],
+  [-0.28, -0.28, -0.30, -0.22],
+  [-0.30, -0.22, -0.26, -0.18],
+  [-0.26, -0.18, -0.18, -0.20],
+  // pauldron detail
+  [-0.22, -0.27, -0.22, -0.19],
+
+  // ── Right shoulder pauldron ──
+  [0.18, -0.26, 0.28, -0.28],
+  [0.28, -0.28, 0.30, -0.22],
+  [0.30, -0.22, 0.26, -0.18],
+  [0.26, -0.18, 0.18, -0.20],
+  // pauldron detail
+  [0.22, -0.27, 0.22, -0.19],
+
+  // ── Left arm ──
+  [-0.26, -0.18, -0.24, -0.08],  // upper arm outer
+  [-0.20, -0.20, -0.20, -0.08],  // upper arm inner
+  [-0.24, -0.08, -0.26, -0.06],  // elbow outer
+  [-0.20, -0.08, -0.22, -0.06],  // elbow inner
+  [-0.26, -0.06, -0.24, 0.08],   // forearm outer
+  [-0.22, -0.06, -0.20, 0.08],   // forearm inner
+  [-0.24, 0.08, -0.20, 0.08],    // wrist
+  // hand / weapon mount
+  [-0.25, 0.08, -0.26, 0.14],
+  [-0.19, 0.08, -0.18, 0.14],
+  [-0.26, 0.14, -0.18, 0.14],
+  // weapon barrel
+  [-0.23, 0.14, -0.23, 0.20],
+  [-0.21, 0.14, -0.21, 0.20],
+  [-0.25, 0.20, -0.19, 0.20],
+
+  // ── Right arm ──
+  [0.26, -0.18, 0.24, -0.08],
+  [0.20, -0.20, 0.20, -0.08],
+  [0.24, -0.08, 0.26, -0.06],
+  [0.20, -0.08, 0.22, -0.06],
+  [0.26, -0.06, 0.24, 0.08],
+  [0.22, -0.06, 0.20, 0.08],
+  [0.24, 0.08, 0.20, 0.08],
+  // hand
+  [0.25, 0.08, 0.26, 0.14],
+  [0.19, 0.08, 0.18, 0.14],
+  [0.26, 0.14, 0.18, 0.14],
+  // shield mount
+  [0.27, 0.04, 0.32, 0.00],
+  [0.32, 0.00, 0.34, 0.08],
+  [0.34, 0.08, 0.30, 0.14],
+  [0.30, 0.14, 0.26, 0.12],
+
+  // ── Left leg ──
+  [-0.10, 0.06, -0.14, 0.20],    // upper leg outer
+  [-0.06, 0.06, -0.08, 0.20],    // upper leg inner
+  [-0.14, 0.20, -0.16, 0.22],    // knee outer
+  [-0.08, 0.20, -0.10, 0.22],    // knee inner
+  [-0.16, 0.22, -0.14, 0.38],    // lower leg outer
+  [-0.10, 0.22, -0.10, 0.38],    // lower leg inner
+  // knee armor
+  [-0.16, 0.18, -0.19, 0.22],
+  [-0.19, 0.22, -0.16, 0.26],
+  // foot
+  [-0.16, 0.38, -0.18, 0.40],
+  [-0.18, 0.40, -0.18, 0.42],
+  [-0.18, 0.42, -0.06, 0.42],
+  [-0.06, 0.42, -0.06, 0.40],
+  [-0.06, 0.40, -0.10, 0.38],
+  // foot detail
+  [-0.14, 0.40, -0.14, 0.42],
+
+  // ── Right leg ──
+  [0.10, 0.06, 0.14, 0.20],
+  [0.06, 0.06, 0.08, 0.20],
+  [0.14, 0.20, 0.16, 0.22],
+  [0.08, 0.20, 0.10, 0.22],
+  [0.16, 0.22, 0.14, 0.38],
+  [0.10, 0.22, 0.10, 0.38],
+  // knee armor
+  [0.16, 0.18, 0.19, 0.22],
+  [0.19, 0.22, 0.16, 0.26],
+  // foot
+  [0.16, 0.38, 0.18, 0.40],
+  [0.18, 0.40, 0.18, 0.42],
+  [0.18, 0.42, 0.06, 0.42],
+  [0.06, 0.42, 0.06, 0.40],
+  [0.06, 0.40, 0.10, 0.38],
+  // foot detail
+  [0.14, 0.40, 0.14, 0.42],
+
+  // ── Backpack / thrusters ──
+  [-0.14, -0.24, -0.16, -0.26],
+  [-0.16, -0.26, -0.16, -0.10],
+  [-0.16, -0.10, -0.14, -0.08],
+  [0.14, -0.24, 0.16, -0.26],
+  [0.16, -0.26, 0.16, -0.10],
+  [0.16, -0.10, 0.14, -0.08],
+  // thruster nozzles
+  [-0.17, -0.12, -0.20, -0.10],
+  [-0.20, -0.10, -0.20, -0.04],
+  [-0.20, -0.04, -0.17, -0.02],
+  [0.17, -0.12, 0.20, -0.10],
+  [0.20, -0.10, 0.20, -0.04],
+  [0.20, -0.04, 0.17, -0.02],
+];
+
+// Diagnostic callout definitions: [body x, body y, label x offset, label]
+const MECH_CALLOUTS: [number, number, number, string][] = [
+  [-0.04, -0.38, -0.52, 'HEAD SENSOR  正常'],
+  [-0.18, -0.17, -0.55, 'R-ARM 兵装  ONLINE'],
+  [0.18, -0.17,   0.22, 'L-ARM SHIELD 98%'],
+  [0.00, -0.17,   0.22, 'REACTOR  出力安定'],
+  [-0.12, 0.20,  -0.55, 'R-LEG 駆動系  OK'],
+  [0.12, 0.20,    0.22, 'L-LEG 駆動系  OK'],
+  [0.00, 0.02,    0.22, 'WAIST GYRO  安定'],
+  [-0.19, -0.07, -0.55, 'THRUSTER  待機'],
+];
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function hexLine(): string {
   let s = '';
@@ -256,12 +426,15 @@ export class MechHudScene implements IScene {
     }
     ctx.setLineDash([]);
 
-    // ═══ Layer 5: Targeting reticles ═════════════════════════════════════════
-    // Update positions — first two drift, third tracks cursor
-    this.reticles[0].x = W * 0.35 + Math.sin(t * 0.2) * 40;
-    this.reticles[0].y = H * 0.4 + Math.cos(t * 0.15) * 30;
-    this.reticles[1].x = W * 0.65 + Math.sin(t * 0.17 + 2) * 35;
-    this.reticles[1].y = H * 0.55 + Math.cos(t * 0.22 + 1) * 25;
+    // ═══ Layer 5: Mech wireframe schematic (center) ══════════════════════════
+    this.drawMechSchematic(ctx, t, W, H, font);
+
+    // ═══ Layer 6: Targeting reticles ═════════════════════════════════════════
+    // Update positions — first two drift around edges, third tracks cursor
+    this.reticles[0].x = W * 0.18 + Math.sin(t * 0.2) * 30;
+    this.reticles[0].y = H * 0.45 + Math.cos(t * 0.15) * 25;
+    this.reticles[1].x = W * 0.82 + Math.sin(t * 0.17 + 2) * 30;
+    this.reticles[1].y = H * 0.50 + Math.cos(t * 0.22 + 1) * 25;
     this.reticles[2].x = this.trackX;
     this.reticles[2].y = this.trackY;
 
@@ -270,7 +443,7 @@ export class MechHudScene implements IScene {
       this.drawReticle(ctx, ret, t, font);
     }
 
-    // ═══ Layer 6: Data panels ════════════════════════════════════════════════
+    // ═══ Layer 7: Data panels ════════════════════════════════════════════════
     const lineH = 14;
     const scrollSpeed = 40; // px/s
 
@@ -325,7 +498,7 @@ export class MechHudScene implements IScene {
       ctx.restore();
     }
 
-    // ═══ Layer 7: Gauge bars ═════════════════════════════════════════════════
+    // ═══ Layer 8: Gauge bars ═════════════════════════════════════════════════
     const gaugeW = 80;
     const gaugeH = 6;
     const gaugeX = W / 2 - (GAUGE_LABELS.length * (gaugeW + 20)) / 2;
@@ -356,6 +529,126 @@ export class MechHudScene implements IScene {
         ctx.fillText(`${(fill * 100).toFixed(1)}%`, x + gaugeW + 4, gaugeY + 6);
       }
     }
+  }
+
+  // ── Mech wireframe schematic ────────────────────────────────────────────────
+  private drawMechSchematic(
+    ctx: CanvasRenderingContext2D,
+    t: number,
+    W: number,
+    H: number,
+    font: string
+  ): void {
+    const cx = W / 2;
+    const cy = H / 2;
+    const scale = Math.min(W, H) * 0.55;
+
+    // ── Wireframe body ──
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    for (const seg of MECH_LINES) {
+      ctx.moveTo(cx + seg[0] * scale, cy + seg[1] * scale);
+      ctx.lineTo(cx + seg[2] * scale, cy + seg[3] * scale);
+    }
+    ctx.stroke();
+
+    // ── Scanning line (sweeps up and down over mech) ──
+    const scanRange = 0.46 * scale;
+    const scanY = cy + Math.sin(t * 0.8) * scanRange;
+    const scanGrad = ctx.createLinearGradient(cx - 0.35 * scale, scanY, cx + 0.35 * scale, scanY);
+    scanGrad.addColorStop(0, 'rgba(255,255,255,0)');
+    scanGrad.addColorStop(0.3, 'rgba(255,255,255,0.15)');
+    scanGrad.addColorStop(0.5, 'rgba(255,255,255,0.25)');
+    scanGrad.addColorStop(0.7, 'rgba(255,255,255,0.15)');
+    scanGrad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = scanGrad;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 0.35 * scale, scanY);
+    ctx.lineTo(cx + 0.35 * scale, scanY);
+    ctx.stroke();
+
+    // Scan line glow fade above/below
+    for (let i = 1; i <= 4; i++) {
+      const a = 0.04 * (1 - i / 5);
+      ctx.strokeStyle = `rgba(255,255,255,${a})`;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - 0.30 * scale, scanY + i * 3);
+      ctx.lineTo(cx + 0.30 * scale, scanY + i * 3);
+      ctx.moveTo(cx - 0.30 * scale, scanY - i * 3);
+      ctx.lineTo(cx + 0.30 * scale, scanY - i * 3);
+      ctx.stroke();
+    }
+
+    // ── Diagnostic callout lines ──
+    ctx.setLineDash([3, 4]);
+    ctx.font = `9px ${font}`;
+    for (const [bx, by, lxOff, label] of MECH_CALLOUTS) {
+      const bodyX = cx + bx * scale;
+      const bodyY = cy + by * scale;
+      const labelX = cx + lxOff * scale;
+      const labelY = bodyY;
+      const midX = bodyX + (labelX - bodyX) * 0.6;
+
+      // Pulsing alpha per callout
+      const a = 0.12 + 0.06 * Math.sin(t * 1.2 + bx * 10 + by * 7);
+
+      ctx.strokeStyle = `rgba(255,255,255,${a})`;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      // Angled line from body point to label
+      ctx.moveTo(bodyX, bodyY);
+      ctx.lineTo(midX, labelY);
+      ctx.lineTo(labelX, labelY);
+      ctx.stroke();
+
+      // Small dot at body anchor
+      ctx.fillStyle = `rgba(255,255,255,${a + 0.08})`;
+      ctx.beginPath();
+      ctx.arc(bodyX, bodyY, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Label text
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
+      if (lxOff < 0) {
+        // Right-align: text ends at labelX
+        const tw = ctx.measureText(label).width;
+        ctx.fillText(label, labelX - tw, labelY - 4);
+      } else {
+        ctx.fillText(label, labelX, labelY - 4);
+      }
+    }
+    ctx.setLineDash([]);
+
+    // ── Status text below mech ──
+    const statusY = cy + 0.48 * scale;
+    ctx.font = `10px ${font}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.textAlign = 'center';
+    ctx.fillText('AC-07 ARMORED FRAME  —  COMBAT READY', cx, statusY);
+    ctx.font = `8px ${font}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillText(`全装甲展開  同期率 ${(97 + Math.sin(t * 0.7) * 2.5).toFixed(1)}%  NEURAL LINK ACTIVE`, cx, statusY + 14);
+    ctx.textAlign = 'left';
+
+    // ── Bounding frame around mech ──
+    const frameW = 0.42 * scale;
+    const frameH = 0.48 * scale;
+    const cornerLen = 18;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    // Top-left
+    ctx.moveTo(cx - frameW, cy - frameH + cornerLen); ctx.lineTo(cx - frameW, cy - frameH); ctx.lineTo(cx - frameW + cornerLen, cy - frameH);
+    // Top-right
+    ctx.moveTo(cx + frameW - cornerLen, cy - frameH); ctx.lineTo(cx + frameW, cy - frameH); ctx.lineTo(cx + frameW, cy - frameH + cornerLen);
+    // Bottom-left
+    ctx.moveTo(cx - frameW, cy + frameH - cornerLen); ctx.lineTo(cx - frameW, cy + frameH); ctx.lineTo(cx - frameW + cornerLen, cy + frameH);
+    // Bottom-right
+    ctx.moveTo(cx + frameW - cornerLen, cy + frameH); ctx.lineTo(cx + frameW, cy + frameH); ctx.lineTo(cx + frameW, cy + frameH - cornerLen);
+    ctx.stroke();
   }
 
   // ── Reticle drawing helper ─────────────────────────────────────────────────

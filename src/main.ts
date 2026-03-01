@@ -2,7 +2,8 @@ import './styles/global.css';
 import { BackgroundEngine } from './lib/engine/index';
 import { TopoScene } from './lib/scenes/topo';
 import { WireframeScene } from './lib/scenes/wireframe';
-import { MechHudScene } from './lib/scenes/mechhud';
+import { AsciiTerrainScene } from './lib/scenes/ascii-terrain';
+// import { MechHudScene } from './lib/scenes/mechhud';
 import { initScramble } from './lib/scramble';
 
 const canvas = document.getElementById('topo-bg') as HTMLCanvasElement;
@@ -12,7 +13,8 @@ const engine = new BackgroundEngine(canvas);
 const STYLES = [
   { id: 'topographic', label: 'topographic', load: () => engine.load(new TopoScene()) },
   { id: 'wireframe',   label: 'wireframe',   load: () => engine.load(new WireframeScene()) },
-  { id: 'mechhud',     label: 'mech hud',    load: () => engine.load(new MechHudScene()) },
+  { id: 'ascii',       label: 'ascii terrain', load: () => engine.load(new AsciiTerrainScene()) },
+  // { id: 'mechhud',     label: 'mech hud',    load: () => engine.load(new MechHudScene()) },
 ];
 let activeStyle = STYLES[0].id;
 STYLES[0].load();
@@ -47,3 +49,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu();
 
 initScramble('.hero-nav a');
 initScramble('.footer-links a');
+
+// QR overlay toggle
+const qrBtn = document.getElementById('qr-btn')!;
+const qrOverlay = document.getElementById('qr-overlay')!;
+qrBtn.addEventListener('click', () => qrOverlay.classList.toggle('open'));
+qrOverlay.addEventListener('click', (e) => { if (e.target === qrOverlay) qrOverlay.classList.remove('open'); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') qrOverlay.classList.remove('open'); });

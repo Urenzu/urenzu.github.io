@@ -118,6 +118,61 @@ a {
   color: var(--fg);
 }
 
+/* ─── QR code button + overlay ─────────────── */
+
+.qr-btn {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.1s ease, color 0.1s ease;
+}
+
+.qr-btn:hover,
+.qr-btn:focus-visible {
+  border-color: var(--fg);
+  color: var(--fg);
+  outline: none;
+}
+
+.qr-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(1px);
+}
+
+.qr-overlay.open {
+  display: flex;
+}
+
+.qr-box {
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.qr-img {
+  display: block;
+  width: 280px;
+  height: 280px;
+  image-rendering: pixelated;
+}
+
 /* ─── Homepage ───────────────────────────────── */
 
 .page-home {
