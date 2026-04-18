@@ -181,8 +181,9 @@ a {
 .hero-domains {
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--dim);
   letter-spacing: 0.06em;
+  text-shadow: 0 0 14px rgba(0, 0, 0, 0.95);
 }
 
 /* ─── Home nav column ────────────────────────────── */
