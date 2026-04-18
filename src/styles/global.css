@@ -105,8 +105,8 @@ a {
 
 .qr-popup img {
   display: block;
-  width: 540px;
-  height: 540px;
+  width: 620px;
+  height: 620px;
 }
 
 @media (max-width: 600px) {
