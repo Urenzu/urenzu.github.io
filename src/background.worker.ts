@@ -1,9 +1,17 @@
-const Du           = 0.2097;
-const Dv           = 0.105;
-const F            = 0.025;
-const K            = 0.060;
-const FK           = F + K;
-const STEPS        = 10;
+// FitzHugh-Nagumo excitable-media background.
+// Produces self-organizing spiral waves on a dark field.
+//
+// Equations:
+//   du/dt = Du∇²u  +  u − u³/3 − v
+//   dv/dt =  ε (u + β − γv)          (no spatial diffusion on v)
+
+const Du    = 0.3;    // activator diffusion
+const EPS   = 0.40;   // time-scale separation
+const BETA  = 0.0;    // 0 = Hopf bifurcation point → every cell oscillates continuously
+const GAMMA = 0.5;    // inhibitor recovery rate
+const DT    = 0.1;    // Euler timestep
+
+const STEPS        = 3;
 const TARGET_CELLS = 500_000;
 const FRAME_MS     = 1000 / 60;
 
@@ -14,9 +22,8 @@ let ctx: OffscreenCanvasRenderingContext2D;
 let simCanvas: OffscreenCanvas;
 let simCtx: OffscreenCanvasRenderingContext2D;
 
-// Ghost-bordered ping-pong buffers: (W+2) × (H+2).
-// Real cells live at rows 1..H, cols 1..W.
-// Ghost border holds periodic copies of the opposite edge.
+// Ghost-bordered ping-pong buffers: (W+2)×(H+2).
+// Real cells at rows 1..H, cols 1..W.
 let U: Float32Array, V: Float32Array;
 let nU: Float32Array, nV: Float32Array;
 
@@ -24,19 +31,21 @@ let img:  ImageData;
 let px32: Uint32Array;
 let lut:  Uint8Array;
 
-let W = 0, H = 0;        // simulation grid (real cells)
-let STRIDE = 0;          // W + 2
-let physW = 0, physH = 0; // native canvas pixel dimensions
+let W = 0, H = 0;
+let STRIDE = 0;
+let physW = 0, physH = 0;
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
 function buildLut(): void {
+  // u lives in [-2.5, 2.5]. LUT index = ((u + 2.5) / 5) * 255.
+  // Rest state ≈ u = −1.2 → dark; excited front ≈ u = 2 → dim white.
   lut = new Uint8Array(256);
   for (let i = 0; i < 256; i++) {
-    const v = i / 255.0;
-    let t = (v - 0.12) / 0.22;
+    const u = (i / 255.0) * 5.0 - 2.5;
+    let t = (u + 0.2) / 2.2;
     if (t < 0.0) t = 0.0; else if (t > 1.0) t = 1.0;
-    lut[i] = (t * t * (3.0 - 2.0 * t) * 90.0 + 0.5) | 0;
+    lut[i] = (t * t * 68.0 + 0.5) | 0;
   }
 }
 
@@ -49,17 +58,16 @@ function rebuild(sw: number, sh: number, dpr: number): void {
   W = Math.max(50, Math.round(H * asp));
   STRIDE = W + 2;
 
-  // Main canvas at native device-pixel resolution — no CSS upscaling blur.
+  // Main canvas at native device-pixel resolution.
   canvas.width  = physW;
   canvas.height = physH;
   ctx.imageSmoothingEnabled = true;
   (ctx as any).imageSmoothingQuality = 'high';
 
-  // Intermediate canvas at simulation grid size for putImageData.
+  // Intermediate canvas for putImageData at sim-grid size.
   simCanvas = new OffscreenCanvas(W, H);
   simCtx    = simCanvas.getContext('2d', { alpha: false }) as OffscreenCanvasRenderingContext2D;
 
-  // Ghost-bordered buffers: (W+2) × (H+2).
   const n = STRIDE * (H + 2);
   U  = new Float32Array(n);
   V  = new Float32Array(n);
@@ -73,44 +81,20 @@ function rebuild(sw: number, sh: number, dpr: number): void {
 }
 
 function seed(): void {
+  // Full random init — works in the oscillatory regime (BETA=0),
+  // every cell cycles continuously so the pattern never collapses.
   for (let y = 1; y <= H; y++) {
     const row = y * STRIDE;
     for (let x = 1; x <= W; x++) {
-      U[row + x] = 1.0;
-      V[row + x] = 0.0;
+      U[row + x] = Math.random() * 4.0 - 2.0;
+      V[row + x] = Math.random() * 4.0 - 2.0;
     }
-  }
-  // Blob seeds for organic nucleation
-  for (let s = 0; s < 80; s++) {
-    const cx = 1 + ((Math.random() * W) | 0);
-    const cy = 1 + ((Math.random() * H) | 0);
-    const r  = 4 + ((Math.random() * 10) | 0);
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        if (dx * dx + dy * dy > r * r) continue;
-        const x = ((cx + dx - 1 + W) % W) + 1;
-        const y = ((cy + dy - 1 + H) % H) + 1;
-        const i = y * STRIDE + x;
-        U[i] = 0.5;
-        V[i] = 0.25;
-      }
-    }
-  }
-  // Sparse scatter across the full grid (2% of cells) so edges are never bare.
-  const scatter = (W * H * 0.02) | 0;
-  for (let s = 0; s < scatter; s++) {
-    const x = 1 + ((Math.random() * W) | 0);
-    const y = 1 + ((Math.random() * H) | 0);
-    const i = y * STRIDE + x;
-    U[i] = 0.5;
-    V[i] = 0.25;
   }
 }
 
 // ─── Per-frame ───────────────────────────────────────────────────────────────
 
 function copyBorders(): void {
-  // Top/bottom ghost rows get the opposite real edge.
   const ghostTop = 0;
   const realTop  = STRIDE;
   const realBot  = H * STRIDE;
@@ -121,7 +105,6 @@ function copyBorders(): void {
     V[ghostTop + x] = V[realBot + x];
     V[ghostBot + x] = V[realTop + x];
   }
-  // Left/right ghost columns.
   for (let y = 0; y <= H + 1; y++) {
     const row = y * STRIDE;
     U[row]         = U[row + W];
@@ -132,22 +115,22 @@ function copyBorders(): void {
 }
 
 function step(): void {
-  // Single uniform loop — row offsets precomputed to reduce address arithmetic.
   for (let y = 1; y <= H; y++) {
     const row  = y * STRIDE;
     const rowN = row - STRIDE;
     const rowS = row + STRIDE;
     for (let x = 1; x <= W; x++) {
-      const i   = row + x;
-      const u   = U[i];
-      const v   = V[i];
-      const lu  = U[rowN + x] + U[rowS + x] + U[i - 1] + U[i + 1] - 4.0 * u;
-      const lv  = V[rowN + x] + V[rowS + x] + V[i - 1] + V[i + 1] - 4.0 * v;
-      const uvv = u * v * v;
-      let nu = u + Du * lu - uvv + F  * (1.0 - u);
-      let nv = v + Dv * lv + uvv - FK * v;
-      if (nu < 0.0) nu = 0.0; else if (nu > 1.0) nu = 1.0;
-      if (nv < 0.0) nv = 0.0; else if (nv > 1.0) nv = 1.0;
+      const i    = row + x;
+      const u    = U[i];
+      const v    = V[i];
+      const lapu = U[rowN + x] + U[rowS + x] + U[i - 1] + U[i + 1] - 4.0 * u;
+
+      let nu = u + DT * (Du * lapu + u - (u * u * u) / 3.0 - v);
+      let nv = v + DT * (EPS * (u + BETA - GAMMA * v));
+
+      if (nu < -2.5) nu = -2.5; else if (nu > 2.5) nu = 2.5;
+      if (nv < -2.5) nv = -2.5; else if (nv > 2.5) nv = 2.5;
+
       nU[i] = nu;
       nV[i] = nv;
     }
@@ -157,18 +140,18 @@ function step(): void {
 }
 
 function render(): void {
-  // Extract real cells from ghost-bordered buffer into flat ImageData.
+  const scale = 255.0 / 5.0;
+  const shift = 2.5;
   for (let y = 1; y <= H; y++) {
     const srcRow = y * STRIDE + 1;
     const dstRow = (y - 1) * W;
     for (let x = 0; x < W; x++) {
-      const c = lut[(V[srcRow + x] * 255.0) | 0];
+      let idx = ((U[srcRow + x] + shift) * scale + 0.5) | 0;
+      if (idx < 0) idx = 0; else if (idx > 255) idx = 255;
+      const c = lut[idx];
       px32[dstRow + x] = (0xFF000000 | (c << 16) | (c << 8) | c) >>> 0;
     }
   }
-  // Blit grid to intermediate canvas, then upscale to native resolution.
-  // Overshoot by one simulation cell on each side so interpolation edges
-  // are clipped by the canvas rather than fading to black at the viewport boundary.
   simCtx.putImageData(img, 0, 0);
   const ox = Math.ceil(physW / W) * 4;
   const oy = Math.ceil(physH / H) * 4;
@@ -177,7 +160,7 @@ function render(): void {
 
 function frame(): void {
   const t0 = performance.now();
-  copyBorders(); // once per frame rather than once per step
+  copyBorders();
   for (let s = 0; s < STEPS; s++) step();
   render();
   setTimeout(frame, Math.max(1, FRAME_MS - (performance.now() - t0)));
