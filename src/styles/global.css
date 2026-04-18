@@ -57,16 +57,6 @@ a {
   pointer-events: none;
 }
 
-/* ─── Vignette ───────────────────────────────── */
-
-.vignette {
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse 70% 60% at 50% 46%, rgba(0,0,0,0.72) 0%, transparent 70%);
-  z-index: 0;
-  pointer-events: none;
-}
-
 /* ─── LinkedIn button + QR popup (top-right) ── */
 
 .linkedin-wrap {
@@ -143,51 +133,44 @@ a {
   padding: 2rem;
 }
 
-.hero {
+.hero-card {
   text-align: center;
+  padding: 2.75rem 3.5rem;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .hero-name {
-  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  font-size: clamp(1.5rem, 3.5vw, 2.2rem);
   font-weight: 800;
   letter-spacing: 0.04em;
   line-height: 1;
-  margin-bottom: 2.5rem;
-}
-
-.cursor {
-  display: inline-block;
-  width: 0.55em;
-  height: 0.9em;
-  background: var(--fg);
-  vertical-align: baseline;
-  margin-left: 4px;
-  animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-  0%, 50%  { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-.hero-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-}
-
-.hero-nav a {
-  color: var(--dim);
-  transition: color 0.05s ease;
-  text-shadow: 0 0 12px rgba(0,0,0,0.9);
-}
-
-.hero-nav a:hover {
   color: var(--fg);
+}
+
+.hero-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 1.5rem 0;
+}
+
+.hero-role {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.45rem;
+}
+
+.hero-domains {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
 }
 
 /* ─── Footer (shared) ────────────────────────── */
