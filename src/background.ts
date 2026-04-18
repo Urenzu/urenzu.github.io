@@ -12,7 +12,13 @@ export class GrayScottScene {
   init(): void {
     const offscreen = this.canvas.transferControlToOffscreen();
     this.worker.postMessage(
-      { type: 'init', canvas: offscreen, sw: window.innerWidth, sh: window.innerHeight },
+      {
+        type: 'init',
+        canvas: offscreen,
+        sw:  window.innerWidth,
+        sh:  window.innerHeight,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
+      },
       [offscreen],
     );
 
@@ -29,8 +35,9 @@ export class GrayScottScene {
     this.resizeTimer = window.setTimeout(() => {
       this.worker.postMessage({
         type: 'resize',
-        sw: window.innerWidth,
-        sh: window.innerHeight,
+        sw:  window.innerWidth,
+        sh:  window.innerHeight,
+        dpr: Math.min(window.devicePixelRatio || 1, 2),
       });
     }, 250);
   };

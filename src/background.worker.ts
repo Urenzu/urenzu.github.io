@@ -1,37 +1,32 @@
-// Gray-Scott reaction-diffusion — simulation worker.
-// Owns the OffscreenCanvas, simulation buffers, and the render loop.
-// Main thread sends: 'init' | 'resize' messages.
-//
-// Pattern reference (adjust F / K):
-//   F=0.037, K=0.060  →  coral / fingerprint
-//   F=0.035, K=0.065  →  isolated spots
-//   F=0.060, K=0.062  →  labyrinthine worms
-//   F=0.025, K=0.060  →  moving Turing spots  (active)
-
 const Du           = 0.2097;
 const Dv           = 0.105;
 const F            = 0.025;
 const K            = 0.060;
-const FK           = F + K;          // precomputed kill + feed
-const STEPS        = 10;             // simulation steps per rendered frame
-const TARGET_CELLS = 300_000;        // target cell count (scales to screen aspect)
-const FRAME_MS     = 1000 / 60;      // ~16.67ms target frame interval
+const FK           = F + K;
+const STEPS        = 10;
+const TARGET_CELLS = 300_000;
+const FRAME_MS     = 1000 / 60;
 
-// ─── State ──────────────────────────────────────────────────────────────────
+// ─── State ───────────────────────────────────────────────────────────────────
 
 let canvas: OffscreenCanvas;
 let ctx: OffscreenCanvasRenderingContext2D;
+let simCanvas: OffscreenCanvas;
+let simCtx: OffscreenCanvasRenderingContext2D;
 
-let U: Float32Array, V: Float32Array;   // current chemical buffers
-let nU: Float32Array, nV: Float32Array; // next (ping-pong)
-
-let nextCol: Int32Array, prevCol: Int32Array;
+// Ghost-bordered ping-pong buffers: (W+2) × (H+2).
+// Real cells live at rows 1..H, cols 1..W.
+// Ghost border holds periodic copies of the opposite edge.
+let U: Float32Array, V: Float32Array;
+let nU: Float32Array, nV: Float32Array;
 
 let img:  ImageData;
 let px32: Uint32Array;
 let lut:  Uint8Array;
 
-let W = 0, H = 0;
+let W = 0, H = 0;        // simulation grid (real cells)
+let STRIDE = 0;          // W + 2
+let physW = 0, physH = 0; // native canvas pixel dimensions
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
@@ -39,32 +34,37 @@ function buildLut(): void {
   lut = new Uint8Array(256);
   for (let i = 0; i < 256; i++) {
     const v = i / 255.0;
-    // Tighter low threshold → more black space between spots
     let t = (v - 0.12) / 0.22;
     if (t < 0.0) t = 0.0; else if (t > 1.0) t = 1.0;
     lut[i] = (t * t * (3.0 - 2.0 * t) * 90.0 + 0.5) | 0;
   }
 }
 
-function rebuild(sw: number, sh: number): void {
+function rebuild(sw: number, sh: number, dpr: number): void {
+  physW = Math.round(sw * dpr);
+  physH = Math.round(sh * dpr);
+
   const asp = sw / sh;
   H = Math.max(50, Math.round(Math.sqrt(TARGET_CELLS / asp)));
   W = Math.max(50, Math.round(H * asp));
-  canvas.width  = W;
-  canvas.height = H;
+  STRIDE = W + 2;
 
-  const n = W * H;
+  // Main canvas at native device-pixel resolution — no CSS upscaling blur.
+  canvas.width  = physW;
+  canvas.height = physH;
+  ctx.imageSmoothingEnabled = true;
+  (ctx as any).imageSmoothingQuality = 'high';
+
+  // Intermediate canvas at simulation grid size for putImageData.
+  simCanvas = new OffscreenCanvas(W, H);
+  simCtx    = simCanvas.getContext('2d', { alpha: false }) as OffscreenCanvasRenderingContext2D;
+
+  // Ghost-bordered buffers: (W+2) × (H+2).
+  const n = STRIDE * (H + 2);
   U  = new Float32Array(n);
   V  = new Float32Array(n);
   nU = new Float32Array(n);
   nV = new Float32Array(n);
-
-  nextCol = new Int32Array(W);
-  prevCol = new Int32Array(W);
-  for (let x = 0; x < W; x++) {
-    nextCol[x] = (x + 1) % W;
-    prevCol[x] = (x - 1 + W) % W;
-  }
 
   img  = new ImageData(W, H);
   px32 = new Uint32Array(img.data.buffer);
@@ -73,18 +73,23 @@ function rebuild(sw: number, sh: number): void {
 }
 
 function seed(): void {
-  U.fill(1.0);
-  V.fill(0.0);
+  for (let y = 1; y <= H; y++) {
+    const row = y * STRIDE;
+    for (let x = 1; x <= W; x++) {
+      U[row + x] = 1.0;
+      V[row + x] = 0.0;
+    }
+  }
   for (let s = 0; s < 80; s++) {
-    const cx = (Math.random() * W) | 0;
-    const cy = (Math.random() * H) | 0;
+    const cx = 1 + ((Math.random() * W) | 0);
+    const cy = 1 + ((Math.random() * H) | 0);
     const r  = 4 + ((Math.random() * 10) | 0);
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
         if (dx * dx + dy * dy > r * r) continue;
-        const x = ((cx + dx) % W + W) % W;
-        const y = ((cy + dy) % H + H) % H;
-        const i = y * W + x;
+        const x = ((cx + dx - 1 + W) % W) + 1;
+        const y = ((cy + dy - 1 + H) % H) + 1;
+        const i = y * STRIDE + x;
         U[i] = 0.5;
         V[i] = 0.25;
       }
@@ -94,37 +99,39 @@ function seed(): void {
 
 // ─── Per-frame ───────────────────────────────────────────────────────────────
 
-function borderCell(y: number, x: number): void {
-  const rowN = (y + 1 < H ? y + 1 : 0) * W;
-  const rowP = (y - 1 >= 0 ? y - 1 : H - 1) * W;
-  const row  = y * W;
-  const i    = row + x;
-  const xN   = nextCol[x];
-  const xP   = prevCol[x];
-
-  const u   = U[i];
-  const v   = V[i];
-  const lu  = U[rowN + x] + U[rowP + x] + U[row + xN] + U[row + xP] - 4.0 * u;
-  const lv  = V[rowN + x] + V[rowP + x] + V[row + xN] + V[row + xP] - 4.0 * v;
-  const uvv = u * v * v;
-
-  let nu = u + Du * lu - uvv + F  * (1.0 - u);
-  let nv = v + Dv * lv + uvv - FK * v;
-  if (nu < 0.0) nu = 0.0; else if (nu > 1.0) nu = 1.0;
-  if (nv < 0.0) nv = 0.0; else if (nv > 1.0) nv = 1.0;
-  nU[i] = nu;
-  nV[i] = nv;
+function copyBorders(): void {
+  // Top/bottom ghost rows get the opposite real edge.
+  const ghostTop = 0;
+  const realTop  = STRIDE;
+  const realBot  = H * STRIDE;
+  const ghostBot = (H + 1) * STRIDE;
+  for (let x = 0; x < STRIDE; x++) {
+    U[ghostTop + x] = U[realBot + x];
+    U[ghostBot + x] = U[realTop + x];
+    V[ghostTop + x] = V[realBot + x];
+    V[ghostBot + x] = V[realTop + x];
+  }
+  // Left/right ghost columns.
+  for (let y = 0; y <= H + 1; y++) {
+    const row = y * STRIDE;
+    U[row]         = U[row + W];
+    U[row + W + 1] = U[row + 1];
+    V[row]         = V[row + W];
+    V[row + W + 1] = V[row + 1];
+  }
 }
 
 function step(): void {
-  for (let y = 1; y < H - 1; y++) {
-    const row = y * W;
-    for (let x = 1; x < W - 1; x++) {
+  copyBorders();
+  // Single uniform loop over all real cells — no branch for border wrapping.
+  for (let y = 1; y <= H; y++) {
+    const row = y * STRIDE;
+    for (let x = 1; x <= W; x++) {
       const i   = row + x;
       const u   = U[i];
       const v   = V[i];
-      const lu  = U[i - W] + U[i + W] + U[i - 1] + U[i + 1] - 4.0 * u;
-      const lv  = V[i - W] + V[i + W] + V[i - 1] + V[i + 1] - 4.0 * v;
+      const lu  = U[i - STRIDE] + U[i + STRIDE] + U[i - 1] + U[i + 1] - 4.0 * u;
+      const lv  = V[i - STRIDE] + V[i + STRIDE] + V[i - 1] + V[i + 1] - 4.0 * v;
       const uvv = u * v * v;
       let nu = u + Du * lu - uvv + F  * (1.0 - u);
       let nv = v + Dv * lv + uvv - FK * v;
@@ -134,28 +141,30 @@ function step(): void {
       nV[i] = nv;
     }
   }
-
-  for (let x = 0; x < W; x++) { borderCell(0, x); borderCell(H - 1, x); }
-  for (let y = 1; y < H - 1; y++) { borderCell(y, 0); borderCell(y, W - 1); }
-
   const tU = U; U = nU; nU = tU;
   const tV = V; V = nV; nV = tV;
 }
 
 function render(): void {
-  const n = W * H;
-  for (let i = 0; i < n; i++) {
-    const c = lut[(V[i] * 255.0) | 0];
-    px32[i] = (0xFF000000 | (c << 16) | (c << 8) | c) >>> 0;
+  // Extract real cells from ghost-bordered buffer into flat ImageData.
+  for (let y = 1; y <= H; y++) {
+    const srcRow = y * STRIDE + 1;
+    const dstRow = (y - 1) * W;
+    for (let x = 0; x < W; x++) {
+      const c = lut[(V[srcRow + x] * 255.0) | 0];
+      px32[dstRow + x] = (0xFF000000 | (c << 16) | (c << 8) | c) >>> 0;
+    }
   }
-  ctx.putImageData(img, 0, 0);
+  // Blit grid to intermediate canvas, then upscale to native resolution.
+  simCtx.putImageData(img, 0, 0);
+  ctx.drawImage(simCanvas, 0, 0, physW, physH);
 }
 
 function frame(): void {
   const t0 = performance.now();
   for (let s = 0; s < STEPS; s++) step();
   render();
-  setTimeout(frame, Math.max(0, FRAME_MS - (performance.now() - t0)));
+  setTimeout(frame, Math.max(1, FRAME_MS - (performance.now() - t0)));
 }
 
 // ─── Message handler ─────────────────────────────────────────────────────────
@@ -164,14 +173,14 @@ addEventListener('message', (e: MessageEvent) => {
   const { type } = e.data as { type: string };
 
   if (type === 'init') {
-    const d = e.data as { canvas: OffscreenCanvas; sw: number; sh: number };
+    const d = e.data as { canvas: OffscreenCanvas; sw: number; sh: number; dpr: number };
     canvas = d.canvas;
     ctx    = canvas.getContext('2d', { alpha: false }) as OffscreenCanvasRenderingContext2D;
     buildLut();
-    rebuild(d.sw, d.sh);
+    rebuild(d.sw, d.sh, d.dpr ?? 1);
     frame();
   } else if (type === 'resize') {
-    const d = e.data as { sw: number; sh: number };
-    rebuild(d.sw, d.sh);
+    const d = e.data as { sw: number; sh: number; dpr: number };
+    rebuild(d.sw, d.sh, d.dpr ?? 1);
   }
 });
