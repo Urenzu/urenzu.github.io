@@ -157,8 +157,12 @@ function render(): void {
     }
   }
   // Blit grid to intermediate canvas, then upscale to native resolution.
+  // Overshoot by one simulation cell on each side so interpolation edges
+  // are clipped by the canvas rather than fading to black at the viewport boundary.
   simCtx.putImageData(img, 0, 0);
-  ctx.drawImage(simCanvas, 0, 0, physW, physH);
+  const ox = Math.ceil(physW / W);
+  const oy = Math.ceil(physH / H);
+  ctx.drawImage(simCanvas, -ox, -oy, physW + ox * 2, physH + oy * 2);
 }
 
 function frame(): void {
