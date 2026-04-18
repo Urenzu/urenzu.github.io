@@ -49,6 +49,7 @@ body {
 @keyframes vt-out { to   { opacity: 0; } }
 @keyframes vt-in  { from { opacity: 0; } }
 
+
 a {
   color: var(--fg);
   text-decoration: none;
@@ -98,17 +99,15 @@ a {
 
 .qr-popup {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  width: fit-content;
+  height: fit-content;
+  margin: auto;
   padding: 1rem;
   background: var(--bg);
   border: 1px solid var(--border);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.15s ease, visibility 0s 0.15s;
-  z-index: 20;
+  /* reset browser popover defaults */
+  outline: none;
 }
 
 .qr-popup img {
@@ -122,13 +121,6 @@ a {
     width: 280px;
     height: 280px;
   }
-}
-
-.linkedin-wrap.qr-open .qr-popup {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transition: opacity 0.15s ease, visibility 0s 0s;
 }
 
 /* ─── Homepage ───────────────────────────────── */
@@ -299,7 +291,7 @@ a {
   letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 3rem;
+  margin-bottom: 0;
 }
 
 .post-list {
@@ -326,9 +318,10 @@ a {
 }
 
 .post-title {
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  font-family: 'APOC', var(--font);
+  font-size: 0.88rem;
+  font-weight: normal;
+  letter-spacing: 0.06em;
   color: var(--fg);
   transition: color 0.2s ease;
 }
@@ -349,9 +342,10 @@ a {
 }
 
 .article-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  font-family: 'APOC', var(--font);
+  font-size: 1.1rem;
+  font-weight: normal;
+  letter-spacing: 0.06em;
   line-height: 1.4;
   margin-bottom: 0.75rem;
 }
@@ -480,4 +474,5 @@ a {
     grid-template-columns: 1fr;
     gap: 0.25rem;
   }
+
 }

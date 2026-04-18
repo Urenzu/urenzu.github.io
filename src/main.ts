@@ -4,20 +4,21 @@ import { initTransitions } from './transitions';
 
 new GrayScottScene(document.getElementById('bg') as HTMLCanvasElement).init();
 
-const wrap = document.getElementById('linkedin-wrap')!;
-const btn  = wrap.querySelector('.linkedin-btn')!;
+const qr = document.getElementById('qr-popup') as HTMLElement;
 
 function closeQr(): void {
-  wrap.classList.remove('qr-open');
-  btn.setAttribute('aria-expanded', 'false');
+  try { (qr as any).hidePopover(); } catch {}
 }
 
-btn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  const open = wrap.classList.toggle('qr-open');
-  btn.setAttribute('aria-expanded', String(open));
-});
+// Close before view-transition snapshot (capture phase = before browser processes the click)
+document.addEventListener('click', (e: MouseEvent) => {
+  const link = (e.target as Element).closest('a[href]') as HTMLAnchorElement | null;
+  if (!link || link.target === '_blank') return;
+  closeQr();
+}, true);
 
-document.addEventListener('click', closeQr);
+// Close before BFCache entry and on BFCache restore
+window.addEventListener('pagehide', closeQr);
+window.addEventListener('pageshow', closeQr);
 
-initTransitions(closeQr);
+initTransitions();
