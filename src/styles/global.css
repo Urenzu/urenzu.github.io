@@ -96,8 +96,9 @@ a {
   background: var(--bg);
   border: 1px solid var(--border);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, visibility 0s 0.15s;
   z-index: 20;
 }
 
@@ -107,7 +108,9 @@ a {
 
 .linkedin-wrap.qr-open .qr-popup {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition: opacity 0.15s ease, visibility 0s 0s;
 }
 
 /* ─── Homepage ───────────────────────────────── */
