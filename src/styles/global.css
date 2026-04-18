@@ -28,7 +28,18 @@ html {
 body {
   min-height: 100vh;
   background: var(--bg);
+  opacity: 0;
+  transition: opacity 0.26s ease;
 }
+
+/* Native cross-document transitions (Chrome 126+) */
+@view-transition { navigation: auto; }
+
+::view-transition-old(root) { animation: 260ms ease both vt-out; }
+::view-transition-new(root) { animation: 260ms ease both vt-in;  }
+
+@keyframes vt-out { to   { opacity: 0; } }
+@keyframes vt-in  { from { opacity: 0; } }
 
 a {
   color: var(--fg);
