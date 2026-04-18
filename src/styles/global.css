@@ -7,9 +7,9 @@
 :root {
   --bg:     #000000;
   --fg:     #ffffff;
-  --dim:    #666666;
-  --muted:  #444444;
-  --border: #1f1f1f;
+  --dim:    #aaaaaa;
+  --muted:  #666666;
+  --border: #303030;
   --code-bg:#080808;
   --font:      'Syne', sans-serif;
   --font-mono: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
@@ -72,9 +72,11 @@ a {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  background: none;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   cursor: pointer;
-  color: var(--muted);
+  color: var(--dim);
   transition: border-color 0.1s ease, color 0.1s ease;
 }
 
@@ -113,7 +115,8 @@ a {
 .page-home {
   position: relative;
   z-index: 1;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -166,6 +169,7 @@ a {
 .hero-nav a {
   color: var(--dim);
   transition: color 0.05s ease;
+  text-shadow: 0 0 12px rgba(0,0,0,0.9);
 }
 
 .hero-nav a:hover {
@@ -177,6 +181,9 @@ a {
 .site-footer {
   padding: 1.5rem 2rem;
   border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .footer-links {
@@ -190,6 +197,7 @@ a {
 .footer-links a {
   color: var(--dim);
   transition: color 0.05s ease;
+  text-shadow: 0 0 10px rgba(0,0,0,0.8);
 }
 
 .footer-links a:hover {
