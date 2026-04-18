@@ -4,7 +4,7 @@ const F            = 0.025;
 const K            = 0.060;
 const FK           = F + K;
 const STEPS        = 10;
-const TARGET_CELLS = 300_000;
+const TARGET_CELLS = 500_000;
 const FRAME_MS     = 1000 / 60;
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -122,16 +122,17 @@ function copyBorders(): void {
 }
 
 function step(): void {
-  copyBorders();
-  // Single uniform loop over all real cells — no branch for border wrapping.
+  // Single uniform loop — row offsets precomputed to reduce address arithmetic.
   for (let y = 1; y <= H; y++) {
-    const row = y * STRIDE;
+    const row  = y * STRIDE;
+    const rowN = row - STRIDE;
+    const rowS = row + STRIDE;
     for (let x = 1; x <= W; x++) {
       const i   = row + x;
       const u   = U[i];
       const v   = V[i];
-      const lu  = U[i - STRIDE] + U[i + STRIDE] + U[i - 1] + U[i + 1] - 4.0 * u;
-      const lv  = V[i - STRIDE] + V[i + STRIDE] + V[i - 1] + V[i + 1] - 4.0 * v;
+      const lu  = U[rowN + x] + U[rowS + x] + U[i - 1] + U[i + 1] - 4.0 * u;
+      const lv  = V[rowN + x] + V[rowS + x] + V[i - 1] + V[i + 1] - 4.0 * v;
       const uvv = u * v * v;
       let nu = u + Du * lu - uvv + F  * (1.0 - u);
       let nv = v + Dv * lv + uvv - FK * v;
@@ -162,6 +163,7 @@ function render(): void {
 
 function frame(): void {
   const t0 = performance.now();
+  copyBorders(); // once per frame rather than once per step
   for (let s = 0; s < STEPS; s++) step();
   render();
   setTimeout(frame, Math.max(1, FRAME_MS - (performance.now() - t0)));
