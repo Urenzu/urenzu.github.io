@@ -80,6 +80,7 @@ function seed(): void {
       V[row + x] = 0.0;
     }
   }
+  // Blob seeds for organic nucleation
   for (let s = 0; s < 80; s++) {
     const cx = 1 + ((Math.random() * W) | 0);
     const cy = 1 + ((Math.random() * H) | 0);
@@ -94,6 +95,15 @@ function seed(): void {
         V[i] = 0.25;
       }
     }
+  }
+  // Sparse scatter across the full grid (2% of cells) so edges are never bare.
+  const scatter = (W * H * 0.02) | 0;
+  for (let s = 0; s < scatter; s++) {
+    const x = 1 + ((Math.random() * W) | 0);
+    const y = 1 + ((Math.random() * H) | 0);
+    const i = y * STRIDE + x;
+    U[i] = 0.5;
+    V[i] = 0.25;
   }
 }
 
@@ -160,8 +170,8 @@ function render(): void {
   // Overshoot by one simulation cell on each side so interpolation edges
   // are clipped by the canvas rather than fading to black at the viewport boundary.
   simCtx.putImageData(img, 0, 0);
-  const ox = Math.ceil(physW / W);
-  const oy = Math.ceil(physH / H);
+  const ox = Math.ceil(physW / W) * 4;
+  const oy = Math.ceil(physH / H) * 4;
   ctx.drawImage(simCanvas, -ox, -oy, physW + ox * 2, physH + oy * 2);
 }
 
