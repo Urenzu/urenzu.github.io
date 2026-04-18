@@ -136,9 +136,9 @@ a {
 .hero-card {
   text-align: center;
   padding: 2.75rem 3.5rem;
-  background: rgba(0, 0, 0, 0.52);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
@@ -159,7 +159,7 @@ a {
 
 .hero-role {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   color: var(--dim);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -168,7 +168,7 @@ a {
 
 .hero-domains {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   color: var(--muted);
   letter-spacing: 0.06em;
 }
