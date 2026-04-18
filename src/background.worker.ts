@@ -1,19 +1,25 @@
-// FitzHugh-Nagumo excitable-media background.
-// Produces self-organizing spiral waves on a dark field.
+// Multi-Scale Turing Pattern background — Jonathan McCabe (2010).
+// Multiple concurrent Turing instabilities at different spatial scales
+// produce rich, nested, coral-like organic patterns.
 //
-// Equations:
-//   du/dt = Du∇²u  +  u − u³/3 − v
-//   dv/dt =  ε (u + β − γv)          (no spatial diffusion on v)
+// Each frame:
+//   1. Box-blur the field into activator + inhibitor buffers at each scale.
+//   2. Per cell, pick the scale whose |activator − inhibitor| is smallest
+//      (closest to its tipping point) and nudge the field by ±variation.
+//   3. Renormalize the field to [−1, 1].
 
-const Du    = 0.3;    // activator diffusion
-const EPS   = 0.40;   // time-scale separation
-const BETA  = 0.0;    // 0 = Hopf bifurcation point → every cell oscillates continuously
-const GAMMA = 0.5;    // inhibitor recovery rate
-const DT    = 0.1;    // Euler timestep
-
-const STEPS        = 3;
-const TARGET_CELLS = 500_000;
+const STEPS        = 1;
+const TARGET_CELLS = 300_000;
 const FRAME_MS     = 1000 / 60;
+
+// [activatorRadiusFrac, inhibitorRadiusFrac, variationAmount]
+// Radii are fractions of min(W, H), resolved in rebuild().
+const SCALE_DEFS = [
+  [0.20,  0.40,  0.005],   // large  — broad sweeping regions
+  [0.055, 0.11,  0.040],   // medium — mid-level structure
+  [0.018, 0.036, 0.030],   // small  — fine labyrinthine detail
+  [0.005, 0.010, 0.020],   // finest — micro-texture
+] as const;
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -22,32 +28,19 @@ let ctx: OffscreenCanvasRenderingContext2D;
 let simCanvas: OffscreenCanvas;
 let simCtx: OffscreenCanvasRenderingContext2D;
 
-// Ghost-bordered ping-pong buffers: (W+2)×(H+2).
-// Real cells at rows 1..H, cols 1..W.
-let U: Float32Array, V: Float32Array;
-let nU: Float32Array, nV: Float32Array;
+let grid: Float32Array;          // simulation field in [−1, 1]
+let temp: Float32Array;          // scratch buffer for separable blur
+let activ: Float32Array[];       // per-scale activator blur results
+let inhib: Float32Array[];       // per-scale inhibitor blur results
+let scales: { actR: number; inhR: number; variation: number }[];
 
 let img:  ImageData;
 let px32: Uint32Array;
-let lut:  Uint8Array;
 
 let W = 0, H = 0;
-let STRIDE = 0;
 let physW = 0, physH = 0;
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
-
-function buildLut(): void {
-  // u lives in [-2.5, 2.5]. LUT index = ((u + 2.5) / 5) * 255.
-  // Rest state ≈ u = −1.2 → dark; excited front ≈ u = 2 → dim white.
-  lut = new Uint8Array(256);
-  for (let i = 0; i < 256; i++) {
-    const u = (i / 255.0) * 5.0 - 2.5;
-    let t = (u + 0.2) / 2.2;
-    if (t < 0.0) t = 0.0; else if (t > 1.0) t = 1.0;
-    lut[i] = (t * t * 68.0 + 0.5) | 0;
-  }
-}
 
 function rebuild(sw: number, sh: number, dpr: number): void {
   physW = Math.round(sw * dpr);
@@ -56,23 +49,29 @@ function rebuild(sw: number, sh: number, dpr: number): void {
   const asp = sw / sh;
   H = Math.max(50, Math.round(Math.sqrt(TARGET_CELLS / asp)));
   W = Math.max(50, Math.round(H * asp));
-  STRIDE = W + 2;
 
-  // Main canvas at native device-pixel resolution.
   canvas.width  = physW;
   canvas.height = physH;
   ctx.imageSmoothingEnabled = true;
   (ctx as any).imageSmoothingQuality = 'high';
 
-  // Intermediate canvas for putImageData at sim-grid size.
   simCanvas = new OffscreenCanvas(W, H);
   simCtx    = simCanvas.getContext('2d', { alpha: false }) as OffscreenCanvasRenderingContext2D;
 
-  const n = STRIDE * (H + 2);
-  U  = new Float32Array(n);
-  V  = new Float32Array(n);
-  nU = new Float32Array(n);
-  nV = new Float32Array(n);
+  const n   = W * H;
+  const minD = Math.min(W, H);
+
+  grid = new Float32Array(n);
+  temp = new Float32Array(n);
+
+  scales = (SCALE_DEFS as readonly (readonly [number, number, number])[]).map(([af, hf, v]) => ({
+    actR:      Math.max(1, Math.round(af * minD)),
+    inhR:      Math.max(2, Math.round(hf * minD)),
+    variation: v,
+  }));
+
+  activ = scales.map(() => new Float32Array(n));
+  inhib = scales.map(() => new Float32Array(n));
 
   img  = new ImageData(W, H);
   px32 = new Uint32Array(img.data.buffer);
@@ -81,76 +80,127 @@ function rebuild(sw: number, sh: number, dpr: number): void {
 }
 
 function seed(): void {
-  // Full random init — works in the oscillatory regime (BETA=0),
-  // every cell cycles continuously so the pattern never collapses.
-  for (let y = 1; y <= H; y++) {
-    const row = y * STRIDE;
-    for (let x = 1; x <= W; x++) {
-      U[row + x] = Math.random() * 4.0 - 2.0;
-      V[row + x] = Math.random() * 4.0 - 2.0;
+  for (let i = 0, n = W * H; i < n; i++) {
+    grid[i] = Math.random() * 2.0 - 1.0;
+  }
+}
+
+// ─── Separable box blur (toroidal boundary conditions) ────────────────────────
+
+function blurRows(src: Float32Array, dst: Float32Array, r: number): void {
+  const inv = 1.0 / (2 * r + 1);
+  for (let y = 0; y < H; y++) {
+    const off = y * W;
+    let sum = 0;
+
+    // Initialise window for x = 0: indices wrap from [W−r .. W−1] ∪ [0 .. r]
+    for (let k = W - r; k < W; k++) sum += src[off + k];
+    for (let k = 0;     k <= r; k++) sum += src[off + k];
+    dst[off] = sum * inv;
+
+    // Left fringe — removal index wraps (x − r − 1 < 0)
+    for (let x = 1; x <= r && x < W; x++) {
+      sum -= src[off + (x - r - 1 + W)];
+      const ar = x + r; sum += src[off + (ar < W ? ar : ar - W)];
+      dst[off + x] = sum * inv;
+    }
+    // Interior — no wrapping
+    const mid = W - r - 1;
+    for (let x = r + 1; x <= mid; x++) {
+      sum -= src[off + x - r - 1];
+      sum += src[off + x + r];
+      dst[off + x] = sum * inv;
+    }
+    // Right fringe — addition index wraps (x + r ≥ W)
+    for (let x = mid + 1; x < W; x++) {
+      sum -= src[off + x - r - 1];
+      sum += src[off + (x + r - W)];
+      dst[off + x] = sum * inv;
     }
   }
+}
+
+function blurCols(src: Float32Array, dst: Float32Array, r: number): void {
+  const inv = 1.0 / (2 * r + 1);
+  for (let x = 0; x < W; x++) {
+    let sum = 0;
+
+    for (let k = H - r; k < H; k++) sum += src[k * W + x];
+    for (let k = 0;     k <= r; k++) sum += src[k * W + x];
+    dst[x] = sum * inv;
+
+    for (let y = 1; y <= r && y < H; y++) {
+      sum -= src[(y - r - 1 + H) * W + x];
+      const ar = y + r; sum += src[(ar < H ? ar : ar - H) * W + x];
+      dst[y * W + x] = sum * inv;
+    }
+    const mid = H - r - 1;
+    for (let y = r + 1; y <= mid; y++) {
+      sum -= src[(y - r - 1) * W + x];
+      sum += src[(y + r) * W + x];
+      dst[y * W + x] = sum * inv;
+    }
+    for (let y = mid + 1; y < H; y++) {
+      sum -= src[(y - r - 1) * W + x];
+      sum += src[(y + r - H) * W + x];
+      dst[y * W + x] = sum * inv;
+    }
+  }
+}
+
+function boxBlur(src: Float32Array, dst: Float32Array, r: number): void {
+  blurRows(src, temp, r);
+  blurCols(temp, dst, r);
 }
 
 // ─── Per-frame ───────────────────────────────────────────────────────────────
 
-function copyBorders(): void {
-  const ghostTop = 0;
-  const realTop  = STRIDE;
-  const realBot  = H * STRIDE;
-  const ghostBot = (H + 1) * STRIDE;
-  for (let x = 0; x < STRIDE; x++) {
-    U[ghostTop + x] = U[realBot + x];
-    U[ghostBot + x] = U[realTop + x];
-    V[ghostTop + x] = V[realBot + x];
-    V[ghostBot + x] = V[realTop + x];
-  }
-  for (let y = 0; y <= H + 1; y++) {
-    const row = y * STRIDE;
-    U[row]         = U[row + W];
-    U[row + W + 1] = U[row + 1];
-    V[row]         = V[row + W];
-    V[row + W + 1] = V[row + 1];
-  }
-}
-
 function step(): void {
-  for (let y = 1; y <= H; y++) {
-    const row  = y * STRIDE;
-    const rowN = row - STRIDE;
-    const rowS = row + STRIDE;
-    for (let x = 1; x <= W; x++) {
-      const i    = row + x;
-      const u    = U[i];
-      const v    = V[i];
-      const lapu = U[rowN + x] + U[rowS + x] + U[i - 1] + U[i + 1] - 4.0 * u;
+  const ns = scales.length;
+  const n  = W * H;
 
-      let nu = u + DT * (Du * lapu + u - (u * u * u) / 3.0 - v);
-      let nv = v + DT * (EPS * (u + BETA - GAMMA * v));
+  // Compute all activator / inhibitor blurs.
+  for (let s = 0; s < ns; s++) {
+    boxBlur(grid, activ[s], scales[s].actR);
+    boxBlur(grid, inhib[s], scales[s].inhR);
+  }
 
-      if (nu < -2.5) nu = -2.5; else if (nu > 2.5) nu = 2.5;
-      if (nv < -2.5) nv = -2.5; else if (nv > 2.5) nv = 2.5;
+  // Update each cell using the scale closest to its tipping point.
+  for (let i = 0; i < n; i++) {
+    let minDiff = Infinity, bestS = 0;
+    for (let s = 0; s < ns; s++) {
+      const d = activ[s][i] - inhib[s][i];
+      const ad = d < 0 ? -d : d;
+      if (ad < minDiff) { minDiff = ad; bestS = s; }
+    }
+    const d = activ[bestS][i] - inhib[bestS][i];
+    grid[i] += scales[bestS].variation * (d > 0 ? 1.0 : -1.0);
+  }
 
-      nU[i] = nu;
-      nV[i] = nv;
+  // Renormalise to [−1, 1].
+  let mn = grid[0], mx = grid[0];
+  for (let i = 1; i < n; i++) {
+    if (grid[i] < mn) mn = grid[i];
+    if (grid[i] > mx) mx = grid[i];
+  }
+  const range = mx - mn;
+  if (range > 1e-9) {
+    const inv2 = 2.0 / range;
+    for (let i = 0; i < n; i++) {
+      grid[i] = (grid[i] - mn) * inv2 - 1.0;
     }
   }
-  const tU = U; U = nU; nU = tU;
-  const tV = V; V = nV; nV = tV;
 }
 
 function render(): void {
-  const scale = 255.0 / 5.0;
-  const shift = 2.5;
-  for (let y = 1; y <= H; y++) {
-    const srcRow = y * STRIDE + 1;
-    const dstRow = (y - 1) * W;
-    for (let x = 0; x < W; x++) {
-      let idx = ((U[srcRow + x] + shift) * scale + 0.5) | 0;
-      if (idx < 0) idx = 0; else if (idx > 255) idx = 255;
-      const c = lut[idx];
-      px32[dstRow + x] = (0xFF000000 | (c << 16) | (c << 8) | c) >>> 0;
-    }
+  const n = W * H;
+  for (let i = 0; i < n; i++) {
+    // [−1,1] → [0,1], then smoothstep for crisp contrast.
+    let t = grid[i] * 0.5 + 0.5;
+    if (t < 0) t = 0; else if (t > 1) t = 1;
+    t = t * t * (3 - 2 * t);       // smoothstep S-curve
+    const c = (t * 225 + 0.5) | 0;
+    px32[i] = (0xFF000000 | (c << 16) | (c << 8) | c) >>> 0;
   }
   simCtx.putImageData(img, 0, 0);
   const ox = Math.ceil(physW / W) * 4;
@@ -160,7 +210,6 @@ function render(): void {
 
 function frame(): void {
   const t0 = performance.now();
-  copyBorders();
   for (let s = 0; s < STEPS; s++) step();
   render();
   setTimeout(frame, Math.max(1, FRAME_MS - (performance.now() - t0)));
@@ -175,7 +224,6 @@ addEventListener('message', (e: MessageEvent) => {
     const d = e.data as { canvas: OffscreenCanvas; sw: number; sh: number; dpr: number };
     canvas = d.canvas;
     ctx    = canvas.getContext('2d', { alpha: false }) as OffscreenCanvasRenderingContext2D;
-    buildLut();
     rebuild(d.sw, d.sh, d.dpr ?? 1);
     frame();
   } else if (type === 'resize') {
