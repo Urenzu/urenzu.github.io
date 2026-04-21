@@ -31,6 +31,24 @@ html {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
 
 body {
@@ -116,11 +134,20 @@ a {
 
 .page-home {
   position: relative;
-  z-index: 1;
   height: 100vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.page-home.expanded {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
+.page-home.expanded .home-content {
+  flex: 0 0 auto;
 }
 
 .home-content {
@@ -204,8 +231,49 @@ a {
   border-bottom: none;
 }
 
-.home-nav a:hover {
+.home-nav a:hover,
+.home-nav a.active {
   color: var(--fg);
+}
+
+/* ─── Writings in-page panel ─────────────────── */
+
+.writings-panel {
+  display: none;
+}
+
+.writings-panel.open {
+  display: block;
+}
+
+.writings-inner {
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 2rem 6rem;
+}
+
+.writings-inner .page-label {
+  display: block;
+  margin-bottom: 0;
+  opacity: 0;
+  animation: fadeSlideIn 0.4s ease 0.05s forwards;
+}
+
+.writings-panel.open .post-entry {
+  opacity: 0;
+  animation: fadeSlideIn 0.4s ease forwards;
+}
+
+.writings-panel.open .post-entry:nth-child(1) { animation-delay: 0.12s; }
+.writings-panel.open .post-entry:nth-child(2) { animation-delay: 0.20s; }
+.writings-panel.open .post-entry:nth-child(3) { animation-delay: 0.28s; }
+.writings-panel.open .post-entry:nth-child(4) { animation-delay: 0.36s; }
+.writings-panel.open .post-entry:nth-child(5) { animation-delay: 0.44s; }
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ─── Footer (shared) ────────────────────────── */
@@ -254,9 +322,7 @@ a {
 }
 
 .back-link {
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  font-size: 1.1rem;
   color: var(--dim);
   transition: color 0.2s ease;
 }
@@ -485,5 +551,9 @@ a {
   .post-entry {
     grid-template-columns: 1fr;
     gap: 0.25rem;
+  }
+
+  .writings-inner {
+    padding: 2rem 1.25rem 4rem;
   }
 }
