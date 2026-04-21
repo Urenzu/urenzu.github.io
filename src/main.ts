@@ -1,8 +1,5 @@
 import './styles/global.css';
-import { GrayScottScene } from './background';
 import { initTransitions } from './transitions';
-
-new GrayScottScene(document.getElementById('bg') as HTMLCanvasElement).init();
 
 const qr = document.getElementById('qr-popup') as HTMLElement;
 
