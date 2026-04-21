@@ -254,9 +254,7 @@ a {
 }
 
 .back-link {
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  font-size: 1.1rem;
   color: var(--dim);
   transition: color 0.2s ease;
 }
