@@ -1,5 +1,5 @@
 import './styles/global.css';
-import { initTransitions } from './transitions';
+import { initTransitions, initTheme } from './transitions';
 
 const qr = document.getElementById('qr-popup') as HTMLElement;
 
@@ -19,3 +19,4 @@ window.addEventListener('pagehide', closeQr);
 window.addEventListener('pageshow', closeQr);
 
 initTransitions();
+initTheme();

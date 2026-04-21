@@ -1,5 +1,22 @@
 const supportsVT = 'startViewTransition' in document;
 
+export function initTheme(): void {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const isLight = document.documentElement.dataset.theme === 'light';
+    document.documentElement.classList.add('theme-transitioning');
+    if (isLight) {
+      delete document.documentElement.dataset.theme;
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.dataset.theme = 'light';
+      localStorage.setItem('theme', 'light');
+    }
+    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
+  });
+}
+
 export function initTransitions(onPageShow?: () => void): void {
   // Undo the inline opacity:0 gate — triggers the CSS transition to full opacity
   requestAnimationFrame(() => { document.body.style.opacity = '1'; });

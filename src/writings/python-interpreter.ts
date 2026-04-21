@@ -1,4 +1,5 @@
 import '../styles/global.css';
-import { initTransitions } from '../transitions';
+import { initTransitions, initTheme } from '../transitions';
 
 initTransitions();
+initTheme();
