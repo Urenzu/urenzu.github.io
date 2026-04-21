@@ -18,5 +18,24 @@ document.addEventListener('click', (e: MouseEvent) => {
 window.addEventListener('pagehide', closeQr);
 window.addEventListener('pageshow', closeQr);
 
+// Bio expand
+const expandBtn = document.getElementById('hero-expand') as HTMLButtonElement | null;
+const heroBio = document.getElementById('hero-bio') as HTMLElement | null;
+
+if (expandBtn && heroBio) {
+  expandBtn.addEventListener('click', () => {
+    const isOpen = heroBio.classList.contains('open');
+    if (isOpen) {
+      heroBio.style.maxHeight = '0';
+      heroBio.classList.remove('open');
+      expandBtn.classList.remove('open');
+    } else {
+      heroBio.style.maxHeight = heroBio.scrollHeight + 'px';
+      heroBio.classList.add('open');
+      expandBtn.classList.add('open');
+    }
+  });
+}
+
 initTransitions();
 initTheme();

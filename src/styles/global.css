@@ -147,8 +147,7 @@ html[data-theme="light"] .icon-moon { display: block; }
 .page-home {
   position: relative;
   z-index: 1;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -164,6 +163,7 @@ html[data-theme="light"] .icon-moon { display: block; }
 }
 
 .hero-card {
+  position: relative;
   text-align: center;
   padding: 2.75rem 3.5rem;
   background: var(--glass-bg);
@@ -204,6 +204,61 @@ html[data-theme="light"] .icon-moon { display: block; }
   font-size: 0.7rem;
   color: var(--dim);
   letter-spacing: 0.06em;
+}
+
+/* ─── Hero bio expand ────────────────────────────── */
+
+.hero-expand-btn {
+  position: absolute;
+  bottom: 0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  transition: color 0.15s ease, transform 0.35s ease;
+}
+
+.hero-expand-btn:hover {
+  color: var(--dim);
+}
+
+.hero-expand-btn.open {
+  transform: translateX(-50%) rotate(45deg);
+  color: var(--dim);
+}
+
+.hero-bio {
+  contain: inline-size;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-bio-inner {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  padding-bottom: 1.5rem;
+}
+
+.hero-bio.open .hero-bio-inner {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.18s;
+}
+
+.hero-bio-text {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--dim);
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+  text-align: center;
 }
 
 /* ─── Home nav column ────────────────────────────── */
