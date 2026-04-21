@@ -22,10 +22,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STEPS        = 2;
-const TARGET_CELLS = 250_000;
+const TARGET_CELLS = 100_000;
 const WARMUP       = 0;
-const CONTRAST     = 7.5;
-const BRIGHTNESS   = 232;
+const CONTRAST     = 5.0;
+const BRIGHTNESS   = 200;
 const FRAME_MS     = 1000 / 60;
 
 const SCALE_DEFS = [
