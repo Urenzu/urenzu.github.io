@@ -196,14 +196,6 @@ html[data-theme="light"] .icon-moon { display: block; }
   color: var(--dim);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-bottom: 0.45rem;
-}
-
-.hero-domains {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--dim);
-  letter-spacing: 0.06em;
 }
 
 /* ─── Home nav column ────────────────────────────── */
